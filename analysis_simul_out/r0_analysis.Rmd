@@ -1,0 +1,224 @@
+---
+title: "<center> $R_{0}$  analysis </center>"
+output:
+  html_notebook: 
+    fig_caption: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: yes
+---
+
+
+```{r,eval=FALSE}
+# importing useful packages 
+library("ggplot2")
+library(scales) # for function alpha()
+# to speed up the computations! library("compiler",
+# lib.loc="/Library/Frameworks/R.framework/Versions/3.2/Resources/library")
+library("plyr", lib.loc="~/Library/R/3.2/library")
+library("moments", lib.loc="/Library/Frameworks/R.framework/Versions/3.3/Resources/library")
+library("cowplot", lib.loc="/Library/Frameworks/R.framework/Versions/3.3/Resources/library")
+library('reshape2')
+```
+
+# Loading $R_{0}$ simulation  outputs 
+
+## define  $R_{0}$ loading function
+
+```{r,eval=FALSE}
+
+r0_load_funcion <- function(my_path){
+
+  help_df <- data.frame() # define help data-frame
+
+  cond_subdir <- sort(list.dirs(my_path)) # loop over subdirectories ~ ACR conditions  
+  cond_subdir <- cond_subdir[-1] # eliminate the main folder from the list!
+  
+  for(sub_dir in cond_subdir) {
+      
+      school_cond <- strsplit(sub_dir,'[/]')[[1]][8] # get ventilation from dir. name
+      
+      # list idx-case simulations for each ACR condition
+      files <- sort(list.files(path= sub_dir , pattern="*.csv", full.names=T))
+  
+          for(f_name in files) {
+          
+              new_df<- read.csv(f_name, header=FALSE)
+              idx<- new_df[1,1]
+               
+              # compute mean/sd/skw/kurt 
+              help_df <- rbind(help_df,
+                                      data.frame(idx, mean(new_df[,2]),sd(new_df[,2]),
+                                                 skewness(new_df[,2]),kurtosis(new_df[,2]), 
+                                                 school_cond )) 
+      }
+      
+  }
+  
+  # FIXING LAYOUT OF DF  
+  
+  # give right names
+  colnames(help_df) <- c('idxc','mean','sd','skewness','kurtosis','school_cond')
+    
+  # sorting df by idx case
+  help_df <- arrange(help_df,help_df$idxc)
+}
+```
+
+## call loading function for all models
+
+```{r}
+r0_aero_df <- r0_load_funcion("~/Documents/school_net_proj/r0/aero_model_r0")
+r0_comb_df <- r0_load_funcion("~/Documents/school_net_proj/r0/comb_model_r0")
+r0_drop_df <- r0_load_funcion("~/Documents/school_net_proj/r0/drop_model_r0")
+```
+
+
+#  Summary box-plots  
+
+```{r,eval=FALSE}
+
+r0_plot_function <- function(plot_df,plot_name){
+  
+  r0_plot <- ggplot() + theme_bw() + ggtitle(plot_name) +
+          geom_boxplot(aes(plot_df$school_cond,plot_df$mean)) +
+          ylim(1,5) +
+          xlab('air change conditions') +
+          ylab("mean R0")
+  
+  ggsave(paste0('./r0_plots/',plot_name,'.pdf'),device = 'pdf')
+  
+  r0_plot # make the plots appear in notebook
+}
+```
+
+call plotting function
+
+```{r}
+
+r0_plot_function(r0_aero_df,'r0_overall_full_aerosol')
+r0_plot_function(r0_comb_df,'r0_overall_comb')
+r0_plot_function(r0_drop_df,'r0_overall_droplet')
+
+```
+
+
+# $R_{0}$ for paper 
+
+make df for 3 models plot 
+
+```{r}
+r0_3_models_df = data.frame(cbind(r0_aero_df$mean[r0_aero_df$school_cond=='ACR05'],
+                      r0_comb_df$mean[r0_comb_df$school_cond=='ACR05'],
+                      r0_drop_df$mean[r0_drop_df$school_cond=='ACR05']))
+colnames(r0_3_models_df) = c('aerosol','combined','droplet')
+```
+
+plot mean $R_{0}$  across models - ACR05
+
+```{r,eval=FALSE}
+
+r0_three_models_plot <- ggplot() + 
+  theme_bw() +
+  geom_boxplot(data = melt(r0_3_models_df), aes(x=variable, y=value)) +
+  ylab('mean R0') + 
+  xlab('model type  - ACR05')
+
+r0_three_models_plot
+plot_name <- 'r0_three_models'
+
+dev.copy(cairo_pdf, paste0('./r0_plots/',plot_name ,'.pdf'))
+dev.off()
+```
+
+```{r}
+r0_three_models_plot
+```
+
+# Analysis of contact network
+
+##  read contact network from school file
+
+```{r,eval=FALSE}
+# get useful packages
+library("network", lib.loc="~/Library/R/3.2/library")
+library("sna", lib.loc="~/Library/R/3.2/library")
+```
+
+```{r,eval=FALSE}
+school <- read.table('../timo_input/school_i_j_aggreg.txt')
+# colnames(school)<- c('node_i','node_j','contact')
+# MIND THAT we output the degree in school_degree.csv file
+
+adja_har <- matrix(,nrow = 789, ncol = 789)
+for(n in seq(1,nrow(school))){
+        adja_har[school[n,1],school[n,2]] <- school[n,3]
+}
+remove(school) # save space! : `school' var is very big
+```
+
+## compute weighted degree distr 
+```{r,eval=FALSE}
+w_degree_har <- c()
+for(r in seq(1,nrow(adja_har))){
+    w_degree_har <- c(w_degree_har,sum(adja_har[r,]))
+}
+```
+
+## plot weighted degree distr 
+
+```{r}
+
+weighted_degree_dist <- ggplot() + ggtitle('Weighted degree distribution') + theme_bw() +
+    geom_histogram(aes(x = w_degree_har)) + 
+    xlab('weighted degree') + ylab('n. nodes')
+# + scale_x_log10() + scale_y_log10()
+
+plot_name <- paste('weighted_degree_dist')
+
+weighted_degree_dist
+
+dev.copy(cairo_pdf, paste0( plot_name,'.pdf'))
+dev.off()
+```
+
+```{r}
+weighted_degree_dist
+```
+
+## $R_{0}$ VS weighted degree  
+
+
+```{r,eval=FALSE}
+
+model_type <- c('Aerosol - ACR05','50%-50% - ACR05')
+
+deg_r0_aero <- round(cor(w_degree_har,r0_aero_df$mean[r0_aero_df$school_cond=='ACR05']),3)
+deg_r0_comb <- round(cor(w_degree_har,r0_comb_df$mean[r0_comb_df$school_cond=='ACR05']),3)
+
+r0_VS_w_degree <- ggplot() + theme_bw() + 
+    geom_point(aes(x = w_degree_har,
+                   y = r0_aero_df$mean[r0_aero_df$school_cond=='ACR05'],
+                   colour = model_type[1]),alpha = 0.3) +
+    geom_point(aes(x = w_degree_har,
+                   y = r0_comb_df$mean[r0_comb_df$school_cond=='ACR05'],
+                   colour = model_type[2]),alpha = 0.3) +
+    
+    xlab('weighted degree') + ylab('mean R0') +
+    
+    scale_colour_discrete(name = 'Model type') +
+    
+    geom_text(aes(x = 1000,y = 3.7,parse = T,colour = model_type[1],
+                  label = paste0('r = ',deg_r0_aero) )) +
+    geom_text(aes(x = 1000,y = 4,parse = T,colour = model_type[2],
+                  label = paste0('r = ',deg_r0_comb) ))
+
+r0_VS_w_degree
+dev.copy(cairo_pdf, paste0( 'r0_VS_w_degree','.pdf'))
+dev.off()
+```
+
+```{r}
+r0_VS_w_degree
+```
+

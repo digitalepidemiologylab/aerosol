@@ -1,0 +1,82 @@
+
+---
+title: "<center> Classroom quanta figure </center>"
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float: yes
+---
+
+# Loading packages 
+
+```{r}
+library("gridExtra")
+library("ggplot2")
+library(scales) # for function alpha()
+library("moments", lib.loc="~/Library/R/3.2/library")
+library("operators", lib.loc="~/Library/R/3.2/library")
+library("cowplot", lib.loc="~/Library/R/3.2/library")
+```
+
+# Loading dataset
+
+```{r}
+class_quanta <- read.csv('exp_data_from_timo.csv')
+```
+
+## describing the dataset
+
+```{r}
+colnames(class_quanta)
+table(class_quanta$Room)
+```
+
+## fix room names
+
+```{r}
+i = 1
+for (old_r in unique(class_quanta$Room)){
+    
+    class_quanta$Room[class_quanta$Room==old_r] <- paste0('room ',i)
+    i = i + 1
+}
+# here we check the result:
+unique(class_quanta$Room)
+```
+
+## add time columns
+
+```{r}
+# we repeat N times, the sequence of time (in h fraction)
+# (N = number of unique classrooms)
+
+class_quanta$Time <- rep(seq(sum(class_quanta$Room=='room 1'))/(3*60),
+                         length(unique(class_quanta$Room)))
+# check results
+length(unique(class_quanta$Time))
+```
+
+
+# Plotting timeseries
+
+```{r}
+# geom_area <--- remember to use this one in the end - for now it's slow
+
+classrooms_plot <- ggplot(class_quanta) + theme_bw() +
+    ylab('normalized exposure') +
+    xlab('time (h)') +
+    scale_y_continuous(breaks = c(0,0.5,1)) +
+    facet_grid(Room ~ .) +
+    geom_area(data = class_quanta,aes(x = Time,y = Exposure)) +
+    geom_area(aes(x = Time,y = Presence),alpha = 0.2)
+    # geom_rect(aes(xmin = Time,xmax))
+
+classrooms_plot
+dev.copy(cairo_pdf, 'classrooms_plot.pdf')
+dev.off()
+
+
+```
+
+
+

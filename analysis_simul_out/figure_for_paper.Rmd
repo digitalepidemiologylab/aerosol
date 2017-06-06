@@ -1,0 +1,345 @@
+---
+title: "<center> Main figures for paper </center>"
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float: yes
+---
+
+Loading packages 
+
+```{r}
+library("gridExtra")
+library("ggplot2")
+library(scales) # for function alpha()
+library("moments", lib.loc="~/Library/R/3.2/library")
+library("operators", lib.loc="~/Library/R/3.2/library")
+library("cowplot", lib.loc="~/Library/R/3.2/library")
+```
+
+# Loading simulations outputs 
+
+## custom function to load epi. quant. 
+(only for 'combined' and 'pure-aerosol' models)
+
+```{r,eval=FALSE}
+
+epi_loading_fun <- function(my_path) {
+  
+  cond_subdir <- sort(list.dirs(my_path) )
+  cond_subdir <- cond_subdir[-1] # eliminate the main folder from the list
+  
+  # create empty data-frame
+  epi_quantities_df <- data.frame()
+
+    for(sub_dir in cond_subdir) {
+      
+      if (grepl('vacc',my_path)==1){
+          # get vacc. coverage
+          school_cond <- as.numeric(strsplit(sub_dir,'[/]')[[1]][7]) 
+      }
+      
+      else{
+          # get ventilation 
+          school_cond <- strsplit(sub_dir,'[/]')[[1]][7]
+      }
+      
+      
+        # list simulations , by idx-case 
+        files <- sort(list.files(path= sub_dir,pattern="*.csv",full.names=T))
+      
+        for(f_name in files) {
+          
+          new_df<- read.csv(f_name, header=FALSE)
+          idx<- new_df[1,1]
+          
+          # compute mean 
+          epi_quantities_df <- rbind(epi_quantities_df,
+                               data.frame(idx, 
+                                          mean(new_df[,4]),
+                                          mean(new_df[,5]),
+                                          mean(new_df[,6]),
+                                          school_cond ))
+        }
+    }
+  
+  # give right names, according to ventilation/vaccination
+  if (grepl('vacc',my_path)==1){
+    
+    colnames(epi_quantities_df) <- c('idxc','mean_i_tot','mean_time_to_peak',
+                                   'mean_max_time','vacc_cov')
+  }
+  else{
+    
+    colnames(epi_quantities_df) <- c('idxc','mean_i_tot','mean_time_to_peak',
+                                   'mean_max_time','school_cond')
+  }
+  
+  epi_quantities_df
+}
+```
+
+## call loading function
+
+```{r,eval=FALSE}
+
+aero_df <- epi_loading_fun("~/Documents/school_net_proj/aerolsol_model_outputs")
+aero_vacc_df <- epi_loading_fun("~/Documents/school_net_proj/vacc_cov_out") 
+
+comb_1000_df <- epi_loading_fun("~/Documents/school_net_proj/1000_comb")
+comb_vacc_1000_df <- epi_loading_fun("~/Documents/school_net_proj/1000_comb+vacc")
+
+```
+
+# Plotting figures for paper
+
+## single model boxplots 
+
+### computing median for different vacc. cov. 
+```{r}
+my_inter_comb <- tapply(comb_vacc_1000_df$mean_i_tot,comb_vacc_1000_df$vacc_cov,median)
+my_inter_aero <- tapply(aero_vacc_df$mean_i_tot,aero_vacc_df$vacc_cov,median)
+```
+
+### extract  labels for legend 
+```{r,eval=FALSE}
+my_labels_comb <- sort(unique(comb_vacc_1000_df$vacc_cov))
+```
+
+### selecting the desired ACR 
+```{r,eval=FALSE}
+comb_to_plot <- comb_1000_df[comb_1000_df$school_cond %in% c('ACR05','ACR15','ACR30'),]
+aerosol_to_plot <- aero_df[aero_df$school_cond %in% c('ACR05','ACR15','ACR30'),]
+```
+
+### plot results for combined model
+```{r}
+vacc_vent_comb <- ggplot() +  theme_bw() + ylim(0,20) +
+    geom_hline(aes( yintercept = my_inter_comb,
+                    colour = factor(my_labels_comb) )) +
+
+    # scale_colour_discrete(name = 'Vacc. cov.(%)') +
+    # scale_colour_discrete(name = bquote(atop('Vaccin.','cov. (%)'))) +
+    theme(legend.position = 'none') +
+    theme(text = element_text(size = 8)) +
+    
+    # scale_colour_gradient(name = 'Vaccination cov.(%)',
+    # low = 'black', high = 'red' ) +
+    
+    geom_boxplot(aes(factor(comb_to_plot$school_cond),
+                     comb_to_plot$mean_i_tot),
+                 outlier.size = 0.3) +
+    
+    # ylab("outbreak size median")
+    ylab("") + xlab('air change rate')  +
+    scale_x_discrete(labels = c('0.5','1.5','3')) + 
+    
+    ggtitle('all-rooms') +
+    
+    annotate("text",label = "(combined)",
+             x = 2, y = 20,size = 3)
+             # , colour = "red")
+
+# +
+#     theme(axis.text.x = element_text(angle = 60, hjust = 1))
+ 
+vacc_vent_comb
+
+# plot_name <- paste0('vac_VS_combined')
+# plot_name <- paste0('vac_VS_combined_1000')
+# dev.copy(cairo_pdf, paste0( plot_name,'.pdf'))
+# dev.off()
+
+```
+
+### plot results for aerosol model
+```{r}
+vacc_vent_aero <- ggplot() +  theme_bw() + ylim(0,20) +
+    geom_hline(aes( yintercept = my_inter_aero,
+                    colour = factor(my_labels_comb) )) +
+
+    # scale_colour_discrete(name = bquote(atop('Vaccin.','cov. (%)')),
+    
+    # scale_colour_discrete(name = 'Vaccination coverage (%)',
+    #                       guide = guide_legend(nrow = 1)) +
+    # theme(legend.position="bottom",
+    #       # legend.direction="horizontal",
+    #       legend.box = "horizontal") +
+
+    theme(legend.position = 'none') +
+
+    theme(text = element_text(size = 8)) +
+    # scale_colour_gradient(name = 'Vaccination cov.(%)',
+    # low = 'black', high = 'red' ) +
+    
+    geom_boxplot(aes(factor(aerosol_to_plot$school_cond),
+                     aerosol_to_plot$mean_i_tot),
+                 outlier.size = 0.3) +
+    
+    ylab("outbreak size median") + xlab('air change rate') +
+    scale_x_discrete(labels = c('0.5','1.5','3')) + 
+    
+    ggtitle('all-rooms') +
+    
+    annotate("text",label = "(aerosol)",
+             x = 2, y = 20,size = 3)
+
+# +
+#     theme(axis.text.x = element_text(angle = 60, hjust = 1))
+ 
+vacc_vent_aero
+
+# plot_name <- paste0('vac_VS_aerosol')
+# dev.copy(cairo_pdf, paste0( plot_name,'.pdf'))
+# dev.off()
+
+```
+
+
+## boxplot for all ventilation strategies
+
+### preparing ventilation-strategy-names
+
+```{r}
+cond_norm <- c('ACR05','ACR15','ACR30')
+cond_opt <- c('ACR05_opt05','ACR05_opt10','ACR05_opt15','ACR05_opt20','ACR05_opt25')
+cond_sch <- c('ACR05_sch05','ACR05_sch10','ACR05_sch15','ACR05_sch20','ACR05_sch25')
+cond_siz <- c('ACR05_siz05','ACR05_siz10','ACR05_siz15','ACR05_siz20','ACR05_siz25')
+
+comb_1000_df$strategy[comb_1000_df$school_cond %in% cond_norm] <- 'all-rooms'
+comb_1000_df$strategy[comb_1000_df$school_cond %in% cond_opt] <- 'optimal'
+comb_1000_df$strategy[comb_1000_df$school_cond %in% cond_sch] <- 'schedule-based'    
+comb_1000_df$strategy[comb_1000_df$school_cond %in% cond_siz] <- 'size-corrected'    
+```
+
+```{r}
+# custom funcion for 2nd x labels!
+# credits to: http://stackoverflow.com/questions/18165863/multirow-axis-labels-with-nested-grouping-variables
+```
+
+### function to subplot single ventilation strategy
+```{r}
+
+single_strat_fun <- function(my_strategy){
+    
+    good_data <- comb_1000_df[comb_1000_df$strategy==my_strategy,]
+    
+    single_strat_subplot <- ggplot() + theme_bw() + ylim(0,20) +
+        # theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(text = element_text(size = 8)) +
+        
+        # plot vaccination medians
+        geom_hline(aes( yintercept = my_inter_comb,
+                        colour = factor(my_labels_comb))) +
+        
+        # plot ventilation medians
+        geom_boxplot(aes(x = good_data$school_cond,y = good_data$mean_i_tot),
+                     outlier.size = 0.3)  +
+        
+        xlab('school volume (%)') +
+        ylab('') +
+        ggtitle(my_strategy) +
+                
+        annotate("text",label = '(combined)',
+             x = 3, y = 20,size = 3) +
+        
+        theme(legend.position = 'none')  +
+        
+        scale_x_discrete(labels = substr(unique(good_data$school_cond),
+                                     start = 10,stop = 11))
+
+    return(single_strat_subplot)
+}
+
+```
+
+### merging the  6 subplots 
+```{r}
+
+c = 0.2
+leg_y = 0.1
+
+ggdraw() +
+    draw_plot(boxplot_leg, x = 0, y = -0.45) +
+              # , width = 0.01, height = 0.4) +
+    draw_plot(vacc_vent_aero, x = 0 , y = leg_y, 0.2, 0.6) +
+    draw_plot(vacc_vent_comb, x = 0.2 , y = leg_y, 0.2, 0.6) +
+    draw_plot(single_strat_fun('optimal'), x = 0.4 , y = leg_y, 0.2, 0.6) +
+    draw_plot(single_strat_fun('schedule-based'), x = 0.6 , y = leg_y, 0.2, 0.6) +
+    draw_plot(single_strat_fun('size-corrected'), x = 0.8 , y = leg_y, 0.2, 0.6) +
+    draw_plot_label(c('A','B','C'), c(0 , 0.2 , 0.4 ),
+                    c(0.6 + leg_y, 0.6 + leg_y, 0.6 + leg_y), size = 10)
+
+plot_name <- paste0('all_boxplots_1000_new')
+dev.copy(cairo_pdf, paste0( plot_name,'.pdf')) #,height = 5)
+dev.off()
+
+
+```
+
+
+###  plot with all ventilation strategies
+```{r}
+
+many_box_plots <- ggplot() + theme_bw() + ylim(0,20) +
+    # theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+    theme(text = element_text(size = 8)) +
+    
+    geom_hline(aes( yintercept = my_inter_comb,
+                    colour = factor(my_labels_comb)))+
+    
+    geom_boxplot(aes(x = comb_1000_df$strategy,
+                     y = comb_1000_df$mean_i_tot,
+                     group = comb_1000_df$school_cond),
+                 outlier.size = 0.3) + 
+    
+    # facet wrap makes impossible to add the hlines!
+    # facet_wrap(~strategy,nrow = 1,scales = 'free_x') +
+    
+    ylab("outbreak size median")  + 
+    xlab('school conditions - combined model')  +
+    
+    theme(legend.position = 'none') 
+    # scale_colour_discrete(name = 'Vacc. cov.(%)')  +
+    # scale_colour_discrete(name = bquote(atop('Vaccin.','cov. (%)'))) 
+
+many_box_plots
+```
+
+### get legend from plot
+
+```{r}
+get_legend <- function(myggplot){
+    tmp <- ggplot_gtable(ggplot_build(myggplot))
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+    legend <- tmp$grobs[[leg]]
+    return(legend)
+}
+
+boxplot_leg <- get_legend(vacc_vent_aero)
+```
+
+## merging the  3 boxplots 
+```{r}
+
+ggdraw() +
+    draw_plot(vacc_vent_comb, x = 0, y = 0, .2, 0.6) +
+    draw_plot(vacc_vent_aero, x = 0.2, y = 0, .2, 0.6) +
+    draw_plot(many_box_plots, x = 0.4, y = 0, .5, 0.6) +
+draw_plot(boxplot_leg, x = 0.9, y = 0.25, .1, 0.2) +
+    draw_plot_label(c('A','B','C'), c(0, 0.2, 0.4),
+                    c(0.6, 0.6, 0.6), size = 10)
+
+# plot_grid(vacc_vent_comb,vacc_vent_aero,many_box_plots,
+#           # boxplot_leg,
+#           labels = c('A','B','C',''),nrow = 1,
+#           rel_widths = c(2,2,8)) 
+#,scale = c(1,1,1,0.1))
+
+plot_name <- paste0('all_boxplots_1000_new')
+dev.copy(cairo_pdf, paste0( plot_name,'.pdf')) #,height = 5)
+dev.off()
+
+```
+
+

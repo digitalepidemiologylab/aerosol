@@ -1,0 +1,249 @@
+---
+title: "Distributions of epidemiological quantities"
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float: yes
+---
+
+loading useful packages 
+
+```{r,eval=FALSE}
+library("ggplot2")
+library(scales) # for function alpha()
+library("moments", lib.loc="~/Library/R/3.2/library")
+library("cowplot", lib.loc="~/Library/R/3.2/library")
+library("gridExtra", lib.loc="~/Library/R/3.2/library")
+library("grid", lib.loc="/Library/Frameworks/R.framework/Versions/3.2/Resources/library")
+library("plyr", lib.loc="~/Library/R/3.2/library")
+```
+
+# Loading  simulation outputs
+
+(given that we don't need information on the distribution for each single simulation, 
+we _only take the mean, overall all runs per each index-case_)
+
+## custom function to load epi. quant. from 'combined' and 'pure-aerosol' models
+
+```{r}
+
+epi_loading_fun <- function(my_path) {
+  
+  # create empty data-frame
+  epi_quantities_df <- data.frame()
+
+    # list simulations, for all idx-case
+    files <- sort(list.files(path= my_path , pattern="*.csv", full.names=T))
+    
+    for(f_name in files) {
+        
+        new_df<- read.csv(f_name, header=FALSE)
+        idx<- new_df[1,1]
+
+        # only save mean  for each epidemiological quantity
+        epi_quantities_df <- rbind(epi_quantities_df,
+                             data.frame(idx,
+                                        mean(new_df[,4]),
+                                        mean(new_df[,5]),
+                                        mean(new_df[,6])
+                             )
+        )
+
+    }
+
+# assign columns names
+colnames(epi_quantities_df) <- c('idxc','mean_i_tot','mean_time_to_peak','mean_max_time ')
+
+# sorting case according to idx-case
+epi_quantities_df <- arrange(epi_quantities_df,epi_quantities_df$idxc)
+
+epi_quantities_df
+}
+```
+
+## custom function to load epi. quant. from 'pure-droplet' model
+
+```{r}
+
+droplet_loading_fun <- function(my_path) {
+  
+  # create empty data-frame
+  epi_quantities_df <- data.frame()
+
+    # list simulations, for all idx-case
+    files <- sort(list.files(path= my_path , pattern="*.csv", full.names=T))
+    
+    for(f_name in files) {
+        
+        new_df<- read.csv(f_name, header=FALSE)
+        idx<- new_df[1,1]
+
+        # only save mean  for each epidemiological quantity
+        epi_quantities_df <- rbind(epi_quantities_df,
+                             data.frame(idx,
+                                        mean(new_df[,2]),
+                                        mean(new_df[,3]),
+                                        mean(new_df[,4])
+                             )
+        )
+
+    }
+
+# assign columns names
+colnames(epi_quantities_df) <- c('idxc','mean_i_tot','mean_time_to_peak','mean_max_time ')
+
+# sorting case according to idx-case
+epi_quantities_df <- arrange(epi_quantities_df,epi_quantities_df$idxc)
+
+epi_quantities_df
+}
+```
+
+## function to load  $R_{0}$
+
+```{r,eval=FALSE}
+
+r0_load_funcion <- function(my_path){
+
+  help_df <- data.frame() # define help data-frame
+  
+    # list idx-case simulations for each ACR condition
+    files <- sort(list.files(path = my_path , pattern="*.csv", full.names=T))
+
+        for(f_name in files) {
+        
+            new_df<- read.csv(f_name, header=FALSE)
+            idx<- new_df[1,1]
+             
+            # compute mean
+            help_df <- rbind(help_df,data.frame(idx, mean(new_df[,2]) )) 
+    }
+
+    
+# assign right names to columns
+colnames(help_df) <- c('idxc','mean_r0')
+
+# sorting case according to idx-case
+help_df <- arrange(help_df,help_df$idxc)
+
+help_df
+}
+```
+
+## call function for  $R_{0}$
+
+```{r,eval=FALSE}
+r0_aero_df <- r0_load_funcion("~/Documents/school_net_proj/r0/aero_model_r0/ACR05")
+r0_comb_df <- r0_load_funcion("~/Documents/school_net_proj/r0/comb_model_r0/ACR05")
+r0_drop_df <- r0_load_funcion("~/Documents/school_net_proj/r0/drop_model_r0/ACR05")
+
+```
+
+
+## call epi. quant. loading function
+
+```{r,eval=FALSE}
+
+# loop over subdirectories ~ ACR conditions  ...
+aero_epi_df <- epi_loading_fun("~/Documents/school_net_proj/aerolsol_model_outputs/ACR05") 
+# add R0
+aero_epi_df['mean_r0'] <- r0_aero_df$mean_r0
+# add column with model name
+aero_epi_df['model'] <- rep('aerosol',nrow(aero_epi_df))
+
+comb_epi_df <- epi_loading_fun("~/Documents/school_net_proj/comb_alpha_05_out/ACR05")
+# add R0 
+comb_epi_df['mean_r0'] <- r0_comb_df$mean_r0
+# add column with model name
+comb_epi_df['model'] <- rep('combined',nrow(aero_epi_df))
+
+drop_epi_df <- droplet_loading_fun('~/Documents/school_net_proj/droplet_model_out')
+# add R0
+drop_epi_df['mean_r0'] <- r0_drop_df$mean_r0
+# add column with model name
+drop_epi_df['model'] <- rep('droplet',nrow(aero_epi_df))
+```
+
+## merge 3 data frames
+
+```{r,eval=FALSE}
+global_df <- rbind(aero_epi_df,comb_epi_df,drop_epi_df)
+
+remove(comb_epi_df,aero_epi_df,drop_epi_df) # delete useless variables
+remove(r0_comb_df,r0_aero_df,r0_drop_df) # delete useless variables
+```
+
+# Plotting Distributions 
+(fig. 3 of paper)
+
+## plot epi. quant. distributions  for all 3 models
+```{r}
+itot_dist <- ggplot() + theme_bw() +
+  geom_freqpoly(aes(x = global_df$mean_i_tot,
+                   color = global_df$model)) +
+  xlab('mean outbreak size') +
+  theme(legend.position = 'none')
+
+ttp_dist <- ggplot() + theme_bw() +
+  geom_freqpoly(aes(x = global_df$mean_time_to_peak,
+                   color = global_df$model)) +
+  xlab('mean time-to-peak') +
+  theme(legend.position = 'none')
+    # scale_colour_discrete(name = 'Model type')
+
+mt_dist <- ggplot() + theme_bw() +
+  geom_freqpoly(aes(x = global_df$mean_max_time,
+                   color = global_df$model)) +
+  xlab('mean max time') +
+  theme(legend.position = 'none')
+  
+```
+
+## custom function to extract the legend from previous plot
+```{r}
+
+get_legend<-function(myggplot){
+    tmp <- ggplot_gtable(ggplot_build(myggplot))
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+    legend <- tmp$grobs[[leg]]
+    return(legend)
+}
+
+dist_leg <- get_legend(ttp_dist)
+
+```
+
+## plot  $R_{0}$ distribution for all 3 models
+(remind that we use results from ACR05)
+
+```{r}
+r0_three_models_plot <- ggplot() + 
+  theme_bw() +
+  geom_boxplot(aes(x = global_df$model,y = global_df$mean_r0,
+                   color = global_df$model)) +
+  # scale_colour_discrete(name = 'Model type') +
+  theme(legend.position = 'none') +
+  
+  ylab(expression('mean R\''[0] ) ) + 
+  xlab('model type')
+
+r0_three_models_plot
+
+```
+
+
+## merging  previous plots
+
+```{r}
+# (remember to first re-run the code for plotting with line 90 commented!)
+
+# plot_grid(itot_dist,mt_dist,ttp_dist,dist_leg,
+plot_grid(itot_dist,mt_dist,ttp_dist,r0_three_models_plot,
+          ncol = 2,labels = c('A','B','C','D'))
+
+plot_name <- paste0('all_3_dist_new')
+dev.copy(cairo_pdf, paste0( plot_name,'.pdf'))
+dev.off()
+
+```
+
