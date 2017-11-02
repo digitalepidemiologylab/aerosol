@@ -13,7 +13,7 @@ Code and data for the paper
 
 - folder [analysis_simul_out](https://github.com/salathegroup/aerosol/tree/master/analysis_simul_out) contains the Rmd notebooks (also in html format) used to produce some figures useful for analysis, including fig. 3 and fig. 4 of the paper
 
-- folder [r0](https://github.com/salathegroup/aerosol/tree/master/r0) contains the python code (.py), the files the run the simulation (.sh) and results (.csv) used to compute R'0, for the three different models (aerosol, droplet, combined)
+- folder [r0](https://github.com/salathegroup/aerosol/tree/master/r0) contains the python code (.py), the files the run the simulation (.sh) and results (.csv) used to compute $ R_{0}' $, for the three different models (aerosol, droplet, combined)
 
 - folder [classroom_fig](https://github.com/salathegroup/aerosol/tree/master/classroom_fig) contains the data and the code to reproduce fig. 2 of the paper
 
