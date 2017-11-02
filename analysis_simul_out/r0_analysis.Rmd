@@ -137,7 +137,7 @@ r0_three_models_plot
 
 # Analysis of contact network
 
-##  read contact network from school file
+##  read contact network from harker file
 
 ```{r,eval=FALSE}
 # get useful packages
@@ -146,15 +146,15 @@ library("sna", lib.loc="~/Library/R/3.2/library")
 ```
 
 ```{r,eval=FALSE}
-school <- read.table('../timo_input/school_i_j_aggreg.txt')
-# colnames(school)<- c('node_i','node_j','contact')
-# MIND THAT we output the degree in school_degree.csv file
+harker <- read.table('../timo_input/harker_i_j_aggreg.txt')
+# colnames(harker)<- c('node_i','node_j','contact')
+# MIND THAT we output the degree in harker_degree.csv file
 
 adja_har <- matrix(,nrow = 789, ncol = 789)
-for(n in seq(1,nrow(school))){
-        adja_har[school[n,1],school[n,2]] <- school[n,3]
+for(n in seq(1,nrow(harker))){
+        adja_har[harker[n,1],harker[n,2]] <- harker[n,3]
 }
-remove(school) # save space! : `school' var is very big
+remove(harker) # save space! : `harker' var is very big
 ```
 
 ## compute weighted degree distr 

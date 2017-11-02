@@ -50,16 +50,16 @@ epi_loading_fun <- function(my_path) {
       
         for(f_name in files) {
           
-          new_df<- read.csv(f_name, header=FALSE)
-          idx<- new_df[1,1]
+            new_df<- read.csv(f_name, header=FALSE)
+            idx<- new_df[1,1]
           
-          # compute mean 
-          epi_quantities_df <- rbind(epi_quantities_df,
+            # compute mean 
+            epi_quantities_df <- rbind(epi_quantities_df,
                                data.frame(idx, 
                                           mean(new_df[,4]),
                                           mean(new_df[,5]),
                                           mean(new_df[,6]),
-                                          school_cond ))
+                              school_cond ))
         }
     }
   
@@ -83,12 +83,29 @@ epi_loading_fun <- function(my_path) {
 
 ```{r,eval=FALSE}
 
+
+### ### ###  loading results from aerosol model ### ### ### 
+
 aero_df <- epi_loading_fun("~/Documents/school_net_proj/aerolsol_model_outputs")
-aero_vacc_df <- epi_loading_fun("~/Documents/school_net_proj/vacc_cov_out") 
+
+aero_vacc_df <- epi_loading_fun("~/Documents/school_net_proj/vacc_cov_out")
+
+### %%% ### %%% load aero runs with 40% vaccine efficacy ### %%% ### %%%
+aero_vacc_40_df <- epi_loading_fun("~/Documents/school_net_proj/fully_aer_vacc_40_eff")
+
+### %%% ### %%% load aero runs with 80% vaccine efficacy ### %%% ### %%%
+aero_vacc_80_df <- epi_loading_fun("~/Documents/school_net_proj/fully_aer_vacc_80_eff")
+
+### ### ###  loading results from combined model ### ### ### 
 
 comb_1000_df <- epi_loading_fun("~/Documents/school_net_proj/1000_comb")
 comb_vacc_1000_df <- epi_loading_fun("~/Documents/school_net_proj/1000_comb+vacc")
 
+### %%% ### %%% load comb runs with 40% vaccine efficacy ### %%% ### %%%
+comb_vacc_40_df <- epi_loading_fun("~/Documents/school_net_proj/comb_vacc_40_eff")
+
+### %%% ### %%% load comb runs with 80% vaccine efficacy ### %%% ### %%%
+comb_vacc_80_df <- epi_loading_fun("~/Documents/school_net_proj/comb_vacc_80_eff")
 ```
 
 # Plotting figures for paper
@@ -97,13 +114,21 @@ comb_vacc_1000_df <- epi_loading_fun("~/Documents/school_net_proj/1000_comb+vacc
 
 ### computing median for different vacc. cov. 
 ```{r}
-my_inter_comb <- tapply(comb_vacc_1000_df$mean_i_tot,comb_vacc_1000_df$vacc_cov,median)
-my_inter_aero <- tapply(aero_vacc_df$mean_i_tot,aero_vacc_df$vacc_cov,median)
+# my_inter_comb <- tapply(comb_vacc_1000_df$mean_i_tot,comb_vacc_1000_df$vacc_cov,median)
+# my_inter_aero <- tapply(aero_vacc_df$mean_i_tot,aero_vacc_df$vacc_cov,median)
+
+my_inter_comb_eff_40 <- tapply(comb_vacc_40_df$mean_i_tot,comb_vacc_40_df$vacc_cov,median)
+my_inter_aero_eff_40 <- tapply(aero_vacc_40_df$mean_i_tot,aero_vacc_40_df$vacc_cov,median)
+
+my_inter_comb_eff_80 <- tapply(comb_vacc_80_df$mean_i_tot,comb_vacc_80_df$vacc_cov,median)
+my_inter_aero_eff_80 <- tapply(aero_vacc_80_df$mean_i_tot,aero_vacc_80_df$vacc_cov,median)
+
 ```
 
 ### extract  labels for legend 
 ```{r,eval=FALSE}
-my_labels_comb <- sort(unique(comb_vacc_1000_df$vacc_cov))
+# my_labels_comb <- sort(unique(comb_vacc_1000_df$vacc_cov))
+my_labels_comb <- sort(unique(comb_vacc_40_df$vacc_cov))
 ```
 
 ### selecting the desired ACR 
@@ -112,10 +137,20 @@ comb_to_plot <- comb_1000_df[comb_1000_df$school_cond %in% c('ACR05','ACR15','AC
 aerosol_to_plot <- aero_df[aero_df$school_cond %in% c('ACR05','ACR15','ACR30'),]
 ```
 
-### plot results for combined model
+### plot results for combined model - all efficacies
 ```{r}
-vacc_vent_comb <- ggplot() +  theme_bw() + ylim(0,20) +
-    geom_hline(aes( yintercept = my_inter_comb,
+# vacc_vent_comb_eff_60 <- ggplot() +  theme_bw() + ylim(0,20) +
+#     ggtitle('vacc. effi. 60%') +
+    
+vacc_vent_comb_eff_80 <- ggplot() +  theme_bw() + ylim(0,20) +
+    ggtitle('vacc. effi. 80%') +
+
+# vacc_vent_comb_eff_40 <- ggplot() +  theme_bw() + ylim(0,20) +
+#     ggtitle('vacc. effi. 40%') +
+    
+    # geom_hline(aes( yintercept = my_inter_comb,
+    # geom_hline(aes( yintercept = my_inter_comb_eff_40,
+      geom_hline(aes( yintercept = my_inter_comb_eff_80,
                     colour = factor(my_labels_comb) )) +
 
     # scale_colour_discrete(name = 'Vacc. cov.(%)') +
@@ -134,8 +169,6 @@ vacc_vent_comb <- ggplot() +  theme_bw() + ylim(0,20) +
     ylab("") + xlab('air change rate')  +
     scale_x_discrete(labels = c('0.5','1.5','3')) + 
     
-    ggtitle('all-rooms') +
-    
     annotate("text",label = "(combined)",
              x = 2, y = 20,size = 3)
              # , colour = "red")
@@ -143,29 +176,45 @@ vacc_vent_comb <- ggplot() +  theme_bw() + ylim(0,20) +
 # +
 #     theme(axis.text.x = element_text(angle = 60, hjust = 1))
  
-vacc_vent_comb
+# vacc_vent_comb_eff_60
+vacc_vent_comb_eff_80
+# vacc_vent_comb_eff_40
 
 # plot_name <- paste0('vac_VS_combined')
 # plot_name <- paste0('vac_VS_combined_1000')
+
+# plot_name <- paste0('vac_VS_combined_eff_40')
+
+# plot_name <- paste0('vac_VS_combined_eff_80')
 # dev.copy(cairo_pdf, paste0( plot_name,'.pdf'))
 # dev.off()
 
 ```
 
-### plot results for aerosol model
+### plot results for aerosol model - all efficacies
 ```{r}
-vacc_vent_aero <- ggplot() +  theme_bw() + ylim(0,20) +
-    geom_hline(aes( yintercept = my_inter_aero,
+# vacc_vent_aero <- ggplot() +  theme_bw() + ylim(0,20) +
+
+vacc_vent_aero_eff_80 <- ggplot() +  theme_bw() + ylim(0,20) +
+    ggtitle('vacc. effi. 80%') +
+
+# vacc_vent_aero_eff_40 <- ggplot() +  theme_bw() + ylim(0,20) +
+#     ggtitle('vacc. effi. 40%') +
+    
+    # geom_hline(aes( yintercept = my_inter_aero,
+    # geom_hline(aes( yintercept = my_inter_aero_eff_40,
+    geom_hline(aes( yintercept = my_inter_aero_eff_80,
                     colour = factor(my_labels_comb) )) +
 
     # scale_colour_discrete(name = bquote(atop('Vaccin.','cov. (%)')),
-    
-    # scale_colour_discrete(name = 'Vaccination coverage (%)',
-    #                       guide = guide_legend(nrow = 1)) +
-    # theme(legend.position="bottom",
-    #       # legend.direction="horizontal",
-    #       legend.box = "horizontal") +
 
+    scale_colour_discrete(name = 'Vaccination coverage (%)',
+                          guide = guide_legend(nrow = 1)) +
+    # theme(legend.position="bottom",
+          # legend.direction="horizontal",
+          # legend.box = "horizontal") +
+    
+    ### uncomment this line to re-plot WITHOUT LEGEND 
     theme(legend.position = 'none') +
 
     theme(text = element_text(size = 8)) +
@@ -176,10 +225,10 @@ vacc_vent_aero <- ggplot() +  theme_bw() + ylim(0,20) +
                      aerosol_to_plot$mean_i_tot),
                  outlier.size = 0.3) +
     
-    ylab("outbreak size median") + xlab('air change rate') +
+    # the original version had indeed a mistake in the y label:
+    # "outbreak size median"
+    ylab("outbreak size") + xlab('air change rate') +
     scale_x_discrete(labels = c('0.5','1.5','3')) + 
-    
-    ggtitle('all-rooms') +
     
     annotate("text",label = "(aerosol)",
              x = 2, y = 20,size = 3)
@@ -187,9 +236,13 @@ vacc_vent_aero <- ggplot() +  theme_bw() + ylim(0,20) +
 # +
 #     theme(axis.text.x = element_text(angle = 60, hjust = 1))
  
-vacc_vent_aero
+vacc_vent_aero_eff_80
+# vacc_vent_aero_eff_40
 
 # plot_name <- paste0('vac_VS_aerosol')
+# plot_name <- paste0('vac_VS_aerosol_eff_40')
+
+# plot_name <- paste0('vac_VS_aerosol_eff_80')
 # dev.copy(cairo_pdf, paste0( plot_name,'.pdf'))
 # dev.off()
 
@@ -270,9 +323,9 @@ ggdraw() +
     draw_plot_label(c('A','B','C'), c(0 , 0.2 , 0.4 ),
                     c(0.6 + leg_y, 0.6 + leg_y, 0.6 + leg_y), size = 10)
 
-plot_name <- paste0('all_boxplots_1000_new')
-dev.copy(cairo_pdf, paste0( plot_name,'.pdf')) #,height = 5)
-dev.off()
+# plot_name <- paste0('all_boxplots_1000_new')
+# dev.copy(cairo_pdf, paste0( plot_name,'.pdf')) #,height = 5)
+# dev.off()
 
 
 ```
@@ -322,24 +375,95 @@ boxplot_leg <- get_legend(vacc_vent_aero)
 ## merging the  3 boxplots 
 ```{r}
 
-ggdraw() +
-    draw_plot(vacc_vent_comb, x = 0, y = 0, .2, 0.6) +
-    draw_plot(vacc_vent_aero, x = 0.2, y = 0, .2, 0.6) +
-    draw_plot(many_box_plots, x = 0.4, y = 0, .5, 0.6) +
-draw_plot(boxplot_leg, x = 0.9, y = 0.25, .1, 0.2) +
-    draw_plot_label(c('A','B','C'), c(0, 0.2, 0.4),
-                    c(0.6, 0.6, 0.6), size = 10)
+# ggdraw() +
+#     draw_plot(vacc_vent_comb, x = 0, y = 0, .2, 0.6) +
+#     draw_plot(vacc_vent_aero, x = 0.2, y = 0, .2, 0.6) +
+#     draw_plot(many_box_plots, x = 0.4, y = 0, .5, 0.6) +
+#     draw_plot(boxplot_leg, x = 0.9, y = 0.25, .1, 0.2) +
+#     draw_plot_label(c('A','B','C'), c(0, 0.2, 0.4),
+#                     c(0.6, 0.6, 0.6), size = 10)
 
-# plot_grid(vacc_vent_comb,vacc_vent_aero,many_box_plots,
-#           # boxplot_leg,
-#           labels = c('A','B','C',''),nrow = 1,
-#           rel_widths = c(2,2,8)) 
-#,scale = c(1,1,1,0.1))
+plot_grid(vacc_vent_comb,vacc_vent_aero,many_box_plots,
+          # boxplot_leg,
+          labels = c('A','B','C',''),nrow = 1,
+          rel_widths = c(2,2,8))
+# ,scale = c(1,1,1,0.1))
 
-plot_name <- paste0('all_boxplots_1000_new')
-dev.copy(cairo_pdf, paste0( plot_name,'.pdf')) #,height = 5)
+# plot_name <- paste0('all_boxplots_1000_new')
+# dev.copy(cairo_pdf, paste0( plot_name,'.pdf')) #,height = 5)
+# dev.off()
+
+```
+
+# Plots for rewiers
+
+## vacc. efficacy comparison - aerosol model
+```{r}
+
+ggplot() + 
+    geom_freqpoly(aes(x = aero_vacc_40_df$mean_i_tot[aero_vacc_40_df$vacc_cov==50],
+                      color = 'efficacy 40%'))  +
+    geom_freqpoly(aes(x = aero_vacc_df$mean_i_tot[aero_vacc_df$vacc_cov==50],
+                      color = 'efficacy 60%')) +
+    geom_freqpoly(aes(x = aero_vacc_80_df$mean_i_tot[aero_vacc_80_df$vacc_cov==50],
+                      color = 'efficacy 80%')) +
+    
+    ggtitle('model: aerosol - coverage: 50%') + 
+    xlab('mean outbreak size') +
+    scale_colour_discrete(name = 'Vaccine efficacy')  
+
+plot_name <- paste0('vacc_eff_compar_aero')
+dev.copy(cairo_pdf, paste0( plot_name,'.pdf'))
 dev.off()
 
 ```
+
+## vacc. efficacy comparison - combined model
+
+```{r}
+
+ggplot() + 
+    geom_freqpoly(aes(x = comb_vacc_40_df$mean_i_tot[comb_vacc_40_df$vacc_cov==50],
+                      color = 'efficacy 40%'))  +
+    geom_freqpoly(aes(x = comb_vacc_1000_df$mean_i_tot[comb_vacc_1000_df$vacc_cov==50],
+                      color = 'efficacy 60%')) +
+    geom_freqpoly(aes(x = comb_vacc_80_df$mean_i_tot[comb_vacc_80_df$vacc_cov==50],
+                      color = 'efficacy 80%')) +
+    
+    ggtitle('model: combined - coverage: 50%') + 
+    xlab('mean outbreak size') +
+    scale_colour_discrete(name = 'Vaccine efficacy')  
+
+plot_name <- paste0('vacc_eff_compar_comb')
+dev.copy(cairo_pdf, paste0( plot_name,'.pdf'))
+dev.off()
+
+```
+
+## merge all efficacies plots
+```{r}
+
+c = 0.2
+leg_y = 0.1
+
+ggdraw() +
+    # draw_plot( x = 0, y = -0.45) +
+              # , width = 0.01, height = 0.4) +
+    draw_plot(vacc_vent_aero_eff_40, x = 0 , y = leg_y, 0.2, 0.8) +
+    draw_plot(vacc_vent_aero_eff_80, x = 0.25 , y = leg_y, 0.2, 0.8) +
+    draw_plot(vacc_vent_comb_eff_40, x = 0.5 , y = leg_y, 0.2, 0.8) +
+    draw_plot(vacc_vent_comb_eff_80, x = 0.75 , y = leg_y, 0.2, 0.8) +
+    draw_plot_label(c('A','B','C','D'), c(0 , 0.2 , 0.4, 0.6 ),
+                    c(1 + leg_y, 1 + leg_y, 1 + leg_y, 1 + leg_y), size = 10)
+
+plot_name <- paste0('all_eff_vacc_VS_vent')
+dev.copy(cairo_pdf, paste0( plot_name,'.pdf')) #,height = 5)
+dev.off()
+
+
+
+```
+
+
 
 

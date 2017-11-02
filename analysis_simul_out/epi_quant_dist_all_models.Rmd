@@ -23,7 +23,7 @@ library("plyr", lib.loc="~/Library/R/3.2/library")
 (given that we don't need information on the distribution for each single simulation, 
 we _only take the mean, overall all runs per each index-case_)
 
-## custom function to load epi. quant. from 'combined' and 'pure-aerosol' models
+## function to load epi. quant. - 'combined' and 'aerosol' models
 
 ```{r}
 
@@ -61,7 +61,7 @@ epi_quantities_df
 }
 ```
 
-## custom function to load epi. quant. from 'pure-droplet' model
+## function to load epi. quant. - 'droplet' model
 
 ```{r}
 
@@ -185,16 +185,20 @@ itot_dist <- ggplot() + theme_bw() +
   theme(legend.position = 'none')
 
 ttp_dist <- ggplot() + theme_bw() +
-  geom_freqpoly(aes(x = global_df$mean_time_to_peak,
+  # geom_freqpoly(aes(x = global_df$mean_time_to_peak,
+    geom_freqpoly(aes(x = global_df$mean_time_to_peak/2,
                    color = global_df$model)) +
-  xlab('mean time-to-peak') +
+  # xlab('mean time-to-peak (simulation time-step)') +
+    xlab('mean time-to-peak (days)') +
   theme(legend.position = 'none')
     # scale_colour_discrete(name = 'Model type')
 
 mt_dist <- ggplot() + theme_bw() +
-  geom_freqpoly(aes(x = global_df$mean_max_time,
+  # geom_freqpoly(aes(x = global_df$mean_max_time,
+    geom_freqpoly(aes(x = global_df$mean_max_time/2,
                    color = global_df$model)) +
-  xlab('mean max time') +
+  # xlab('mean max time (simulation time-step)') +
+    xlab('mean max time (days)') +
   theme(legend.position = 'none')
   
 ```
@@ -241,7 +245,8 @@ r0_three_models_plot
 plot_grid(itot_dist,mt_dist,ttp_dist,r0_three_models_plot,
           ncol = 2,labels = c('A','B','C','D'))
 
-plot_name <- paste0('all_3_dist_new')
+# plot_name <- paste0('all_3_dist_new_time_step')
+plot_name <- paste0('all_3_dist_new_days')
 dev.copy(cairo_pdf, paste0( plot_name,'.pdf'))
 dev.off()
 
