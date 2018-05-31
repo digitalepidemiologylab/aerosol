@@ -17,13 +17,13 @@ import numpy as np
 ####################
 
 CONTACT_FILE = sys.argv[1] # school file!
-#CONTACT_FILE = './timo_input/school_i_j_aggreg.txt'
+#CONTACT_FILE = './input_files/school_i_j_aggreg.txt'
   
 II_FILE = sys.argv[2]  
-#II_FILE = './timo_input/i_to_i_ACR05_opt05_schedule.csv'
+#II_FILE = './input_files/i_to_i_ACR05_opt05_schedule.csv'
 
 IR_FILE = sys.argv[3]  
-#IR_FILE = './timo_input/i_to_r_ACR05_opt05_schedule.csv'
+#IR_FILE = './input_files/i_to_r_ACR05_opt05_schedule.csv'
 
 #INDEX_CASE = int(sys.argv[4])
 INDEX_CASE = 34 # this is fixed only for testing

@@ -11,7 +11,7 @@ import csv
 
 II_FILE = sys.argv[1]  # "./analyses/i_to_i_ACR05.csv"
 IR_FILE = sys.argv[2]  # "./analyses/i_to_r_ACR05.csv"
-CPR_FILE = "/home/lazzari/school_net_proj/timo_input/school_i_j_aggreg.txt"
+CPR_FILE = "/home/lazzari/school_net_proj/input_files/school_i_j_aggreg.txt"
 
 # INDEX_CASE = int(sys.argv[3])
 

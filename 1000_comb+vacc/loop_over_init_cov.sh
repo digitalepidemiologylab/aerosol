@@ -1,7 +1,7 @@
 # correct argval to python command ---> see below 
  
-f_ii=/home/lazzari/school_net_proj/timo_input/i_to_i_ACR05_schedule.csv
-f_ir=/home/lazzari/school_net_proj/timo_input/i_to_r_ACR05_schedule.csv
+f_ii=/home/lazzari/school_net_proj/input_files/i_to_i_ACR05_schedule.csv
+f_ir=/home/lazzari/school_net_proj/input_files/i_to_r_ACR05_schedule.csv
 # get the name of condition from the input file
 filename="${f_ii##*/}"  
 OUTPUT_SIGN1=${filename#i_to_i_}
@@ -23,7 +23,7 @@ for coverage_fract in  $(seq 0 10 100); do
  	printf 'computing sim. for vaccination coverage = %d %%\n' "$coverage_fract"
 
 	time python2.7 ~/aerosol/1000_comb+vacc/vacc+combined_model_cpu_par.py \
-	~/aerosol/timo_input/school_i_j_aggreg.txt \
+	~/aerosol/input_files/school_i_j_aggreg.txt \
 	$f_ii $f_ir $coverage_fract $OUTPUT_SIGN2
 	
 	cd ../

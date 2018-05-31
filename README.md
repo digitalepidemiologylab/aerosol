@@ -5,7 +5,7 @@ Code and data for the paper
 
 - folder [location_info](https://github.com/salathegroup/aerosol/tree/master/location_info) contains the original data from the experiment ([Salathé et al., 2010](http://www.pnas.org/content/107/51/22020.short)) and the code used to generate the simulated exposures 
 
-- folder [timo_input](https://github.com/salathegroup/aerosol/tree/master/timo_input) contains the inputs needed to run the simulations: one text (.txt) file for the recorded CPIs and table (.csv) files for the simulated quanta and exposures, for each ventilation scenario
+- folder [input_files](https://github.com/salathegroup/aerosol/tree/master/input_files) contains the inputs needed to run the simulations: one text (.txt) file for the recorded CPIs and table (.csv) files for the simulated quanta and exposures, for each ventilation scenario
 
 - folders [vacc_cov_out](https://github.com/salathegroup/aerosol/tree/master/vacc_cov_out) and [aerolsol_model_outputs](https://github.com/salathegroup/aerosol/tree/master/aerolsol_model_outputs) contain the code to simulate outbreak in the _full aerosol_ scenario, with and without vaccination
 

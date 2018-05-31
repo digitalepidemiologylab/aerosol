@@ -1,7 +1,7 @@
 # correct argval to python command ---> see below 
  
-f_ii=~/aerosol/timo_input/i_to_i_ACR05_schedule.csv
-f_ir=~/aerosol/timo_input/i_to_r_ACR05_schedule.csv
+f_ii=~/aerosol/input_files/i_to_i_ACR05_schedule.csv
+f_ir=~/aerosol/input_files/i_to_r_ACR05_schedule.csv
 
 # get the name of condition from the input file
 filename="${f_ii##*/}"  

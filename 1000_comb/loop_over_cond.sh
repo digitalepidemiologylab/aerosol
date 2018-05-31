@@ -5,7 +5,7 @@
 # inputs files directory and list: mind that we use the structure of the input-file-name to give
 # correct argval to python command ---> see below 
 
-inp_path=~/aerosol/timo_input/
+inp_path=~/aerosol/input_files/
 ii_files=`ls -v $inp_path*i_to_i*`
 ir_files=`ls -v $inp_path*i_to_r*`
 
@@ -40,7 +40,7 @@ for i in  $(seq 0 $num_cond); do
 	cd $OUTPUT_SIGN2
  
 	time python2.7 ~/aerosol/1000_comb/combined_model_cpu_par.py \
-	~/aerosol/timo_input/school_i_j_aggreg.txt \
+	~/aerosol/input_files/school_i_j_aggreg.txt \
 	$f_ii $f_ir $OUTPUT_SIGN2
 
 	cd ../
